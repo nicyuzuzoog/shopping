@@ -28,6 +28,21 @@ const saleSchema = new mongoose.Schema(
       enum: ['MoMo Pay', 'Cash', 'Bank Transfer'],
       required: [true, 'Payment method is required'],
     },
+    clientName: {
+      type: String,
+      required: [true, 'Client name is required'],
+      trim: true,
+    },
+    clientPhone: {
+      type: String,
+      required: [true, 'Client phone is required'],
+      trim: true,
+    },
+    clientLocation: {
+      type: String,
+      required: [true, 'Client location is required'],
+      trim: true,
+    },
     soldBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

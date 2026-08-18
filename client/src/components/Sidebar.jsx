@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, Users, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, LogOut, Menu, X, ClipboardList } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/pos', label: 'Point of Sale', icon: ShoppingCart, adminOnly: false },
   { to: '/inventory', label: 'Inventory', icon: Package, adminOnly: true },
   { to: '/manage-users', label: 'Manage Users', icon: Users, adminOnly: true },
+  { to: '/clients-report', label: 'Clients Report', icon: ClipboardList, adminOnly: false },
 ];
 
 export default function Sidebar() {

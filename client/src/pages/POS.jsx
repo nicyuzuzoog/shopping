@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Search, X, ShoppingCart, Minus, Plus, Trash2, Printer, ChevronDown } from 'lucide-react';
+import { Search, X, ShoppingCart, Minus, Plus, Trash2, Printer, ChevronDown, UserCircle } from 'lucide-react';
 import Receipt from '../components/Receipt';
 
 const api = axios.create({ baseURL: '/api' });
@@ -26,6 +26,8 @@ export default function POS() {
   const [lastSale, setLastSale] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [clientForm, setClientForm] = useState({ clientName: '', clientPhone: '', clientLocation: '' });
   const receiptRef = useRef();
 
   useEffect(() => {
@@ -117,6 +119,23 @@ export default function POS() {
         return;
       }
     }
+    setShowClientModal(true);
+  };
+
+  const handleConfirmSale = async () => {
+    if (!clientForm.clientName.trim()) {
+      toast.error('Client name is required');
+      return;
+    }
+    if (!clientForm.clientPhone.trim()) {
+      toast.error('Client phone is required');
+      return;
+    }
+    if (!clientForm.clientLocation.trim()) {
+      toast.error('Client location is required');
+      return;
+    }
+    setShowClientModal(false);
     setProcessing(true);
     try {
       const payload = {
@@ -129,11 +148,15 @@ export default function POS() {
         })),
         totalAmountRWF: totalAmount,
         paymentMethod,
+        clientName: clientForm.clientName.trim(),
+        clientPhone: clientForm.clientPhone.trim(),
+        clientLocation: clientForm.clientLocation.trim(),
       };
       const { data } = await api.post('/sales', payload);
       setLastSale(data);
       setShowReceipt(true);
       setCart([]);
+      setClientForm({ clientName: '', clientPhone: '', clientLocation: '' });
       toast.success('Sale completed successfully!');
       fetchItems();
     } catch (err) {
@@ -396,6 +419,71 @@ export default function POS() {
           </button>
         </div>
       </div>
+
+      {/* Client Info Modal */}
+      {showClientModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+              <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                <UserCircle size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">Client Information</h3>
+                <p className="text-[11px] text-slate-400">Record customer credentials for warranty</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Client Name *</label>
+                <input
+                  type="text"
+                  value={clientForm.clientName}
+                  onChange={(e) => setClientForm({ ...clientForm, clientName: e.target.value })}
+                  placeholder="Full name"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Client Phone *</label>
+                <input
+                  type="tel"
+                  value={clientForm.clientPhone}
+                  onChange={(e) => setClientForm({ ...clientForm, clientPhone: e.target.value })}
+                  placeholder="+250 7XX XXX XXX"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Client Location *</label>
+                <input
+                  type="text"
+                  value={clientForm.clientLocation}
+                  onChange={(e) => setClientForm({ ...clientForm, clientLocation: e.target.value })}
+                  placeholder="District / Sector / Cell"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => setShowClientModal(false)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSale}
+                disabled={processing}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+              >
+                {processing ? 'Processing...' : 'Confirm & Print'}
+                {!processing && <Printer size={14} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Receipt Modal Overlay */}
       {showReceipt && lastSale && (

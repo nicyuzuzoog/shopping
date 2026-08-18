@@ -3,12 +3,15 @@ const Item = require('../models/Item');
 
 const createSale = async (req, res) => {
   try {
-    const { itemsSold, totalAmountRWF, paymentMethod } = req.body;
+    const { itemsSold, totalAmountRWF, paymentMethod, clientName, clientPhone, clientLocation } = req.body;
     if (!itemsSold || itemsSold.length === 0) {
       return res.status(400).json({ message: 'No items in the sale' });
     }
     if (!paymentMethod) {
       return res.status(400).json({ message: 'Payment method is required' });
+    }
+    if (!clientName || !clientPhone || !clientLocation) {
+      return res.status(400).json({ message: 'Client name, phone, and location are required' });
     }
 
     for (const item of itemsSold) {
@@ -31,6 +34,9 @@ const createSale = async (req, res) => {
       itemsSold,
       totalAmountRWF,
       paymentMethod,
+      clientName,
+      clientPhone,
+      clientLocation,
       soldBy: req.user._id,
     });
 

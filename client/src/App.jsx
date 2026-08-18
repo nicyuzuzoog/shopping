@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import POS from './pages/POS';
 import Inventory from './pages/Inventory';
 import ManageUsers from './pages/ManageUsers';
+import ClientsReport from './pages/ClientsReport';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
           <Route path="/inventory" element={<ProtectedRoute adminOnly><Inventory /></ProtectedRoute>} />
           <Route path="/manage-users" element={<ProtectedRoute adminOnly><ManageUsers /></ProtectedRoute>} />
+          <Route path="/clients-report" element={<ProtectedRoute><ClientsReport /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
