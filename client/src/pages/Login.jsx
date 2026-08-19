@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { Phone, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 import logo from '../assets/logo.png';
 
-const API = '/api/auth';
+// Uses Vercel's VITE_API_URL in production
+// and localhost when running locally.
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth`;
 
 export default function Login() {
   const [step, setStep] = useState(1);
@@ -21,20 +23,26 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       const res = await fetch(`${API}/check-phone`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ phone }),
       });
+
       const data = await res.json();
+
       if (res.ok && data.exists) {
         setName(data.name);
         setStep(2);
       } else {
-        setError('Phone number not found in system');
+        setError(data.message || 'Phone number not found in system');
       }
-    } catch {
+    } catch (error) {
+      console.error('Check phone error:', error);
       setError('Server connection error. Please try again.');
     } finally {
       setLoading(false);
@@ -45,20 +53,29 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       const res = await fetch(`${API}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone,
+          password,
+        }),
       });
+
       const data = await res.json();
+
       if (res.ok && data.token) {
         loginUser(data.token, data.user);
         navigate('/pos');
       } else {
         setError(data.message || 'Invalid password provided');
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setError('Server connection error. Please try again.');
     } finally {
       setLoading(false);
@@ -68,12 +85,21 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md space-y-6">
+
         {/* Branding Header */}
         <div className="text-center">
           <div className="inline-flex p-3 bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-            <img src={logo} alt="KNAX_250 Logo" className="w-12 h-12 object-contain" />
+            <img
+              src={logo}
+              alt="KNAX_250 Logo"
+              className="w-12 h-12 object-contain"
+            />
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">KNAX-POS</h1>
+
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            KNAX-POS
+          </h1>
+
           <p className="text-xs font-semibold text-slate-400 mt-0.5 uppercase tracking-wider">
             KNAX_250 TECHNOLOGY LTD
           </p>
@@ -81,19 +107,31 @@ export default function Login() {
 
         {/* Card Form */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-slate-100 transition-all">
+
           {step === 1 ? (
             <form onSubmit={handleCheckPhone} className="space-y-5">
+
               <div>
-                <h2 className="text-base font-bold text-slate-800">Welcome back</h2>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">Injiza numero ya telefone</p>
+                <h2 className="text-base font-bold text-slate-800">
+                  Welcome back
+                </h2>
+
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Injiza numero ya telefone
+                </p>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
                   Phone Number
                 </label>
+
                 <div className="relative">
-                  <Phone size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Phone
+                    size={18}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
                   <input
                     type="tel"
                     value={phone}
@@ -118,7 +156,8 @@ export default function Login() {
               >
                 {loading ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" /> Checking...
+                    <Loader2 size={18} className="animate-spin" />
+                    Checking...
                   </>
                 ) : (
                   'Next Step'
@@ -127,11 +166,18 @@ export default function Login() {
             </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-5">
+
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-slate-800">Muraho, {name} 👋</h2>
-                  <p className="text-xs font-medium text-slate-400 mt-0.5">Injiza Password yanyu</p>
+                  <h2 className="text-base font-bold text-slate-800">
+                    Muraho, {name} 👋
+                  </h2>
+
+                  <p className="text-xs font-medium text-slate-400 mt-0.5">
+                    Injiza Password yanyu
+                  </p>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -150,8 +196,13 @@ export default function Login() {
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
                   Password
                 </label>
+
                 <div className="relative">
-                  <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Lock
+                    size={18}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -160,12 +211,18 @@ export default function Login() {
                     required
                     className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-11 py-3 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -177,6 +234,7 @@ export default function Login() {
               )}
 
               <div className="flex gap-3">
+
                 <button
                   type="button"
                   onClick={() => {
@@ -188,6 +246,7 @@ export default function Login() {
                 >
                   Back
                 </button>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -195,12 +254,14 @@ export default function Login() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" /> Signing in...
+                      <Loader2 size={18} className="animate-spin" />
+                      Signing in...
                     </>
                   ) : (
                     'Sign In'
                   )}
                 </button>
+
               </div>
             </form>
           )}
@@ -210,6 +271,7 @@ export default function Login() {
         <p className="text-center text-slate-400 text-xs font-medium">
           &copy; {new Date().getFullYear()} KNAX_250 TECHNOLOGY LTD. All rights reserved.
         </p>
+
       </div>
     </div>
   );
