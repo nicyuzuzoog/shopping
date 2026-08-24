@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, Trash2, X, Upload, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Search } from 'lucide-react';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -27,24 +27,40 @@ export default function Inventory() {
   const [category, setCategory] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Set auth header when token changes
   useEffect(() => {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchItems();
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
   }, [token]);
 
+  // Fetch items when search or category changes (and on initial load)
   useEffect(() => {
     fetchItems();
-  }, [search, category]);
+  }, [search, category, token]);
 
   const fetchItems = async () => {
     try {
       const params = {};
       if (search) params.search = search;
       if (category) params.category = category;
+
       const { data } = await api.get('/items', { params });
-      setItems(data);
+
+      // FIX: Ensure data is an array regardless of backend payload wrapper
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else if (Array.isArray(data?.items)) {
+        setItems(data.items);
+      } else if (Array.isArray(data?.data)) {
+        setItems(data.data);
+      } else {
+        setItems([]);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch inventory:', err);
+      toast.error(err.response?.data?.message || 'Failed to fetch inventory');
+      setItems([]); // Fallback to empty array on network error
     }
   };
 
@@ -57,12 +73,12 @@ export default function Inventory() {
   const openEdit = (item) => {
     setEditingItem(item);
     setForm({
-      title: item.title,
-      category: item.category,
+      title: item.title || '',
+      category: item.category || 'laptop',
       serialNumbers: item.serialNumbers?.join(', ') || '',
-      importCostRWF: item.importCostRWF,
-      sellingPriceRWF: item.sellingPriceRWF,
-      stockQuantity: item.stockQuantity,
+      importCostRWF: item.importCostRWF ?? '',
+      sellingPriceRWF: item.sellingPriceRWF ?? '',
+      stockQuantity: item.stockQuantity ?? '',
       imageUrl: item.imageUrl || '',
       lowStockThreshold: item.lowStockThreshold || 2,
     });
@@ -110,6 +126,9 @@ export default function Inventory() {
       toast.error(err.response?.data?.message || 'Failed to delete');
     }
   };
+
+  // Defensive array check before mapping
+  const safeItems = Array.isArray(items) ? items : [];
 
   return (
     <div>
@@ -162,7 +181,7 @@ export default function Inventory() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {safeItems.map((item) => (
                 <tr key={item._id} className="border-t border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3">
                     {item.imageUrl ? (
@@ -182,17 +201,21 @@ export default function Inventory() {
                   <td className="px-4 py-3 text-xs text-slate-600 max-w-[200px] truncate">
                     {item.serialNumbers?.join(', ') || '-'}
                   </td>
-                  <td className="px-4 py-3 text-sm">{item.importCostRWF.toLocaleString()} RWF</td>
-                  <td className="px-4 py-3 text-sm font-medium">{item.sellingPriceRWF.toLocaleString()} RWF</td>
+                  <td className="px-4 py-3 text-sm">
+                    {(item.importCostRWF ?? 0).toLocaleString()} RWF
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium">
+                    {(item.sellingPriceRWF ?? 0).toLocaleString()} RWF
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        item.stockQuantity <= item.lowStockThreshold
+                        (item.stockQuantity ?? 0) <= (item.lowStockThreshold ?? 2)
                           ? 'bg-red-100 text-red-700'
                           : 'bg-emerald-100 text-emerald-700'
                       }`}
                     >
-                      {item.stockQuantity}
+                      {item.stockQuantity ?? 0}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -213,7 +236,7 @@ export default function Inventory() {
                   </td>
                 </tr>
               ))}
-              {items.length === 0 && (
+              {safeItems.length === 0 && (
                 <tr>
                   <td colSpan="7" className="px-4 py-8 text-center text-slate-400">No items found</td>
                 </tr>
