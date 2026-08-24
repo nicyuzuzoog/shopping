@@ -31,7 +31,9 @@ export default function POS() {
   const receiptRef = useRef();
 
   useEffect(() => {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
     fetchItems();
   }, [token]);
 
@@ -45,9 +47,21 @@ export default function POS() {
       if (search) params.search = search;
       if (category !== 'all') params.category = category;
       const { data } = await api.get('/items', { params });
-      setItems(data);
+
+      // Safe extraction: handles both raw array res.json([...]) and wrapped res.json({ data: [...] })
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else if (Array.isArray(data?.items)) {
+        setItems(data.items);
+      } else if (Array.isArray(data?.data)) {
+        setItems(data.data);
+      } else {
+        setItems([]);
+      }
     } catch (err) {
       console.error(err);
+      setItems([]); // Fallback to empty array on network/server error
+      toast.error('Failed to load items');
     }
   };
 
@@ -57,6 +71,8 @@ export default function POS() {
       return;
     }
     const existing = cart.find((c) => c.itemId === item._id);
+    const validSerials = Array.isArray(item.serialNumbers) ? item.serialNumbers : [];
+
     if (existing) {
       if (existing.qty >= item.stockQuantity) {
         toast.error('No more stock available');
@@ -69,11 +85,11 @@ export default function POS() {
         {
           itemId: item._id,
           title: item.title,
-          serialNumber: item.serialNumbers?.[0] || '',
+          serialNumber: validSerials[0] || '',
           qty: 1,
           sellingPriceRWF: item.sellingPriceRWF,
           stockQuantity: item.stockQuantity,
-          serialNumbers: item.serialNumbers || [],
+          serialNumbers: validSerials,
         },
       ]);
     }
@@ -207,48 +223,49 @@ export default function POS() {
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5 content-start">
-          {items.map((item) => (
-            <button
-              key={item._id}
-              onClick={() => addToCart(item)}
-              className="bg-white rounded-2xl border border-slate-100 p-3 text-left hover:border-indigo-300 hover:shadow-md transition-all group flex flex-col justify-between"
-            >
-              <div>
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="w-full h-24 sm:h-28 object-cover rounded-xl mb-2.5"
-                  />
-                ) : (
-                  <div className="w-full h-24 sm:h-28 bg-slate-50 border border-slate-100 rounded-xl mb-2.5 flex items-center justify-center text-slate-400 text-xs font-semibold">
-                    No Image
-                  </div>
-                )}
-                <h3 className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors">
-                  {item.title}
-                </h3>
-                <p className="text-[10px] font-semibold text-slate-400 capitalize mt-0.5">{item.category}</p>
-              </div>
+          {Array.isArray(items) &&
+            items.map((item) => (
+              <button
+                key={item._id}
+                onClick={() => addToCart(item)}
+                className="bg-white rounded-2xl border border-slate-100 p-3 text-left hover:border-indigo-300 hover:shadow-md transition-all group flex flex-col justify-between"
+              >
+                <div>
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="w-full h-24 sm:h-28 object-cover rounded-xl mb-2.5"
+                    />
+                  ) : (
+                    <div className="w-full h-24 sm:h-28 bg-slate-50 border border-slate-100 rounded-xl mb-2.5 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                      No Image
+                    </div>
+                  )}
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-[10px] font-semibold text-slate-400 capitalize mt-0.5">{item.category}</p>
+                </div>
 
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
-                <span className="text-xs sm:text-sm font-extrabold text-indigo-600">
-                  {item.sellingPriceRWF.toLocaleString()} <span className="text-[10px]">RWF</span>
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    item.stockQuantity <= item.lowStockThreshold
-                      ? 'bg-rose-50 text-rose-600'
-                      : 'bg-emerald-50 text-emerald-600'
-                  }`}
-                >
-                  {item.stockQuantity} in stock
-                </span>
-              </div>
-            </button>
-          ))}
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
+                  <span className="text-xs sm:text-sm font-extrabold text-indigo-600">
+                    {(item.sellingPriceRWF || 0).toLocaleString()} <span className="text-[10px]">RWF</span>
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      item.stockQuantity <= item.lowStockThreshold
+                        ? 'bg-rose-50 text-rose-600'
+                        : 'bg-emerald-50 text-emerald-600'
+                    }`}
+                  >
+                    {item.stockQuantity} in stock
+                  </span>
+                </div>
+              </button>
+            ))}
 
-          {items.length === 0 && (
+          {(!Array.isArray(items) || items.length === 0) && (
             <div className="col-span-full text-center py-16 bg-white rounded-2xl border border-slate-100">
               <p className="text-slate-400 font-medium text-sm">No items found matching criteria</p>
             </div>
@@ -321,13 +338,17 @@ export default function POS() {
                     className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 appearance-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   >
                     <option value="">Select Serial Number</option>
-                    {item.serialNumbers.map((sn, i) => (
-                      <option key={i} value={sn}>
-                        {sn}
-                      </option>
-                    ))}
+                    {Array.isArray(item.serialNumbers) &&
+                      item.serialNumbers.map((sn, i) => (
+                        <option key={i} value={sn}>
+                          {sn}
+                        </option>
+                      ))}
                   </select>
-                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ChevronDown
+                    size={14}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  />
                 </div>
               </div>
 
